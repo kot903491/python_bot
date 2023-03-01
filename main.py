@@ -1,104 +1,136 @@
-from aiogram import Bot, Dispatcher, F
-from aiogram.filters import Command
-from aiogram.types import Message, ContentType
-import requests
 import random
 
-api_response = requests.Response
-ERROR_TEXT = 'Тут должна быть картинка :('
+from aiogram import Bot, Dispatcher
+from aiogram.types import Message
+from aiogram.filters import Text, Command
 
-API_TOKEN:str = '5849642826:AAFOvnJTbn1sDvVO7cT4HcV1K8Lxo08cIk8'
-bot:Bot = Bot(token=API_TOKEN)
-dp:Dispatcher=Dispatcher()
 
-@dp.message(Command(commands=["start"]))
-async def process_start_command(message:Message):
-    await message.answer('Привет!\nМеня зовут Эхо-бот!\nНапиши мне что-нибудь')
-    
+# Вместо BOT TOKEN HERE нужно вставить токен вашего бота,
+# полученный у @BotFather
+BOT_TOKEN: str = '5849642826:AAFOvnJTbn1sDvVO7cT4HcV1K8Lxo08cIk8'
+
+# Создаем объекты бота и диспетчера
+bot: Bot = Bot(BOT_TOKEN)
+dp: Dispatcher = Dispatcher()
+
+# Количество попыток, доступных пользователю в игре
+ATTEMPTS: int = 5
+
+# Словарь, в котором будут храниться данные пользователя
+user: dict = {'in_game': False,
+              'secret_number': None,
+              'attempts': None,
+              'total_games': 0,
+              'wins': 0}
+
+
+# Функция возвращающая случайное целое число от 1 до 100
+def get_random_number() -> int:
+    return random.randint(1, 100)
+
+
+# Этот хэндлер будет срабатывать на команду "/start"
+@dp.message(Command(commands=['start']))
+async def process_start_command(message: Message):
+    await message.answer('Привет!\nДавай сыграем в игру "Угадай число"?\n\n'
+                         'Чтобы получить правила игры и список доступных '
+                         'команд - отправьте команду /help')
+
+
 # Этот хэндлер будет срабатывать на команду "/help"
 @dp.message(Command(commands=['help']))
 async def process_help_command(message: Message):
-    await message.answer('Напиши мне что-нибудь и в ответ '
-                         'я пришлю тебе твое сообщение')
+    await message.answer(f'Правила игры:\n\nЯ загадываю число от 1 до 100, '
+                         f'а вам нужно его угадать\nУ вас есть {ATTEMPTS} '
+                         f'попыток\n\nДоступные команды:\n/help - правила '
+                         f'игры и список команд\n/cancel - выйти из игры\n'
+                         f'/stat - посмотреть статистику\n\nДавай сыграем?')
 
-# Этот хэндлер будет срабатывать на команду "/ahtung"    
-@dp.message(Command(commands=["ahtung"]))
-async def process_ahtyng_command(message:Message):
-    api_photo = 'https://random.dog/woof.json'
-    api_response=requests.get(api_photo)
-    if api_response.status_code==200:
-        photo_link = api_response.json()['url']
-        await message.answer_photo(photo_link)
+
+# Этот хэндлер будет срабатывать на команду "/stat"
+@dp.message(Command(commands=['stat']))
+async def process_stat_command(message: Message):
+    await message.answer(f'Всего игр сыграно: {user["total_games"]}\n'
+                         f'Игр выиграно: {user["wins"]}')
+
+
+# Этот хэндлер будет срабатывать на команду "/cancel"
+@dp.message(Command(commands=['cancel']))
+async def process_cancel_command(message: Message):
+    if user['in_game']:
+        await message.answer('Вы вышли из игры. Если захотите сыграть '
+                             'снова - напишите об этом')
+        user['in_game'] = False
     else:
-        await message.answer(ERROR_TEXT)
+        await message.answer('А мы итак с вами не играем. '
+                             'Может, сыграем разок?')
 
-# Этот хэндлер будет срабатывать на команду "/valera"        
-@dp.message(Command(commands=["valera"]))
-async def process_valera_command(message:Message):
-    api_photo = 'https://randomfox.ca/floof/'
-    api_response=requests.get(api_photo)
-    if api_response.status_code==200:
-        photo_link = api_response.json()['image']
-        await message.answer_photo(photo_link, caption='Вот такой Валера!')
+
+# Этот хэндлер будет срабатывать на согласие пользователя сыграть в игру
+@dp.message(Text(text=['Да', 'Давай', 'Сыграем', 'Игра',
+                       'Играть', 'Хочу играть'], ignore_case=True))
+async def process_positive_answer(message: Message):
+    if not user['in_game']:
+        await message.answer('Ура!\n\nЯ загадал число от 1 до 100, '
+                             'попробуй угадать!')
+        user['in_game'] = True
+        user['secret_number'] = get_random_number()
+        user['attempts'] = ATTEMPTS
     else:
-        await message.answer(ERROR_TEXT)
-        
+        await message.answer('Пока мы играем в игру я могу '
+                             'реагировать только на числа от 1 до 100 '
+                             'и команды /cancel и /stat')
 
-# Этот хэндлер будет срабатывать на отправку фото
-@dp.message(F.photo)
-async def send_photo_echo(message: Message):
-    await message.reply_photo(message.photo[0].file_id)       
 
-#стикер
-@dp.message(F.sticker)
-async def send_sticker_echo(message: Message):
-    await message.reply_sticker(message.sticker.file_id)
-    
-# Этот хэндлер будет срабатывать на любые ваши текстовые сообщения,
-# кроме команд   
-@dp.message(F.text)
-async def send_text_echo(message: Message):
-    await message.answer(text=message.text)
+# Этот хэндлер будет срабатывать на отказ пользователя сыграть в игру
+@dp.message(Text(text=['Нет', 'Не', 'Не хочу', 'Не буду'], ignore_case=True))
+async def process_negative_answer(message: Message):
+    if not user['in_game']:
+        await message.answer('Жаль :(\n\nЕсли захотите поиграть - просто '
+                             'напишите об этом')
+    else:
+        await message.answer('Мы же сейчас с вами играем. Присылайте, '
+                             'пожалуйста, числа от 1 до 100')
 
-#аудио
-@dp.message(F.audio)
-async def send_audio_echo(message:Message):
-    await message.answer("Аудио")
 
-#гифки анимации
-@dp.message(F.animation)
-async def send_animation_echo(message:Message):
-    await message.answer("message.animation.file_id")
+# Этот хэндлер будет срабатывать на отправку пользователем чисел от 1 до 100
+@dp.message(lambda x: x.text and x.text.isdigit() and 1 <= int(x.text) <= 100)
+async def process_numbers_answer(message: Message):
+    if user['in_game']:
+        if int(message.text) == user['secret_number']:
+            await message.answer('Ура!!! Вы угадали число!\n\n'
+                                 'Может, сыграем еще?')
+            user['in_game'] = False
+            user['total_games'] += 1
+            user['wins'] += 1
+        elif int(message.text) > user['secret_number']:
+            await message.answer('Мое число меньше')
+            user['attempts'] -= 1
+        elif int(message.text) < user['secret_number']:
+            await message.answer('Мое число больше')
+            user['attempts'] -= 1
 
-#документы
-@dp.message(F.document)
-async def send_document_echo(message:Message):
-    await message.answer("Документ")
+        if user['attempts'] == 0:
+            await message.answer(f'К сожалению, у вас больше не осталось '
+                                 f'попыток. Вы проиграли :(\n\nМое число '
+                                 f'было {user["secret_number"]}\n\nДавайте '
+                                 f'сыграем еще?')
+            user['in_game'] = False
+            user['total_games'] += 1
+    else:
+        await message.answer('Мы еще не играем. Хотите сыграть?')
 
-#видео
-@dp.message(F.video)
-async def send_video_echo(message:Message):
-    await message.answer("Видео")
 
-#видео кружок    
-@dp.message(F.video_note)
-async def send_video_note_echo(message:Message):
-    await message.answer("Видео заметка")
-
-#голосовые сообщения    
-@dp.message(F.voice)
-async def send_voice_echo(message:Message):
-    await message.answer("Голосовое")
-
-#контакты    
-@dp.message(F.contact)
-async def send_contact_echo(message:Message):
-    await message.answer("Контакт")
-
-#Для всех не описаных типов
+# Этот хэндлер будет срабатывать на остальные любые сообщения
 @dp.message()
-async def send_any_echo(message:Message):
-    await message.answer("Что то другое")
+async def process_other_text_answers(message: Message):
+    if user['in_game']:
+        await message.answer('Мы же сейчас с вами играем. '
+                             'Присылайте, пожалуйста, числа от 1 до 100')
+    else:
+        await message.answer('Я довольно ограниченный бот, давайте '
+                             'просто сыграем в игру?')
+
 
 if __name__ == '__main__':
     dp.run_polling(bot)
