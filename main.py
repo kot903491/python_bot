@@ -1,8 +1,10 @@
-print("Это основной файл",__name__)
-from pack_1.file_11 import result
+#print("Это основной файл",__name__)
+import pack_2
+import importlib
 
-print("result = ", result)
+print (dir(pack_2))
+pack_2.file_21.x=3
+print(pack_2.file_21.x)
+pack_2 = importlib.reload(pack_2)
 
-from pack_2.pack_21.file_211 import r
-
-print("r = ", r)
+print(pack_2.file_21.x)

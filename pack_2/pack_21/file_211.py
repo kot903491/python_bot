@@ -1,4 +1,3 @@
-print ("This is file ", __name__)
 from ..file_21 import another_func
 
 b:int = 4242
