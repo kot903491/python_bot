@@ -4,16 +4,16 @@ from environs import Env
 
 @dataclass()
 class DatabaseConfig:
-    db_name: str                # Название базы данных
-    db_host: str                # Хост
-    db_user: str                # Имя пользователя базы данных
-    db_password: str            # Пароль базы данных
+    db_name: str  # Название базы данных
+    db_host: str  # Хост
+    db_user: str  # Имя пользователя базы данных
+    db_password: str  # Пароль базы данных
 
 
 @dataclass()
 class TgBot:
-    token: str                # Токен к боту
-    admin_ids: list[int]      # Список админов бота
+    token: str  # Токен к боту
+    admin_ids: list[int]  # Список админов бота
 
 
 @dataclass()
