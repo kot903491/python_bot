@@ -21,14 +21,13 @@ class Config:
     tg_bot: TgBot
     db: DatabaseConfig
 
-def load_config(path: str|None) -> Config:
+
+def load_config(path: str | None) -> Config:
     env = Env()
     env.read_env(path)
     return Config(tg_bot=TgBot(token=env('BOT_TOKEN'),
-                                 admin_ids=list(map(int, env.list('ADMIN_IDS')))),
-                    db=DatabaseConfig(db_name=env('DATABASE'),
-                                      db_host=env('DB_HOST'),
-                                      db_user=env('DB_USER'),
-                                      db_password=env('DB_PASSWORD')))
-
-
+                               admin_ids=list(map(int, env.list('ADMIN_IDS')))),
+                  db=DatabaseConfig(db_name=env('DATABASE'),
+                                    db_host=env('DB_HOST'),
+                                    db_user=env('DB_USER'),
+                                    db_password=env('DB_PASSWORD')))
