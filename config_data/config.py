@@ -22,7 +22,7 @@ class Config:
     # db: DatabaseConfig
 
 
-def load_config(path: str | None) -> Config:
+def load_config(path: str | None = '.env') -> Config:
     env = Env()
     env.read_env(path)
     return Config(tg_bot=TgBot(token=env('BOT_TOKEN')))
